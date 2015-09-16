@@ -95,8 +95,8 @@ public class ARecordDAOImpl extends SQLiteOpenHelper implements ARecordDAO {
         SQLiteDatabase db = null;
         try {
             db = this.getReadableDatabase();
-            Cursor res =  db.rawQuery( "select * from " + TABLE_NAME, null );
-           /* Cursor res =  db.rawQuery( "select * from " + TABLE_NAME + " where " + C_DATE + " between  '2010-01-01 00:00:00' and '2016-01-01 00:00:00' ", null );*/
+//            Cursor res =  db.rawQuery( "select * from " + TABLE_NAME, null );
+          Cursor res =  db.rawQuery( "select * from " + TABLE_NAME + " where " + C_DATE + " between  '2010-01-01 00:00:00' and '2019-01-01 00:00:00' ", null );
             res.moveToFirst();
 
             while(res.isAfterLast() == false){

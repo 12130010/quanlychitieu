@@ -10,6 +10,7 @@ public class ARecord {
     private String reason;
     private int amount;
     private Date date;
+
     public ARecord(){
 
     }

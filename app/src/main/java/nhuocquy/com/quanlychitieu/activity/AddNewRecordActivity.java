@@ -1,6 +1,5 @@
 package nhuocquy.com.quanlychitieu.activity;
 
-import android.app.DatePickerDialog;
 import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
@@ -14,7 +13,6 @@ import android.widget.EditText;
 import android.widget.ImageButton;
 import android.widget.TextView;
 import android.widget.TimePicker;
-import android.widget.Toast;
 
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
@@ -23,19 +21,27 @@ import java.util.Date;
 import java.util.GregorianCalendar;
 
 import nhuocquy.com.quanlychitieu.R;
+import nhuocquy.com.quanlychitieu.adapter.MainRCVAdapter;
 import nhuocquy.com.quanlychitieu.dao.ARecordDAOImpl;
+import nhuocquy.com.quanlychitieu.model.ARecord;
 
 public class AddNewRecordActivity extends AppCompatActivity implements View.OnClickListener {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
     private Date chooseDate = new Date();
     private Calendar calendar = new GregorianCalendar();
 
-
     private TextView tvDate;
     private ImageButton bntDate;
     private EditText txtReason;
     private EditText txtAmount;
     private Button btnAddRecord;
+    Intent intent;
+    public static final String TYPE = "type";
+    public static final int TYPE_ADD = 1;
+    public static final int TYPE_UPDATE = 2;
+    private int type = 0;
+    private int id;
+
 
     /**
      * Find the Views in the layout<br />
@@ -65,10 +71,12 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         if (v == bntDate) {
             openDateAndTimeDialog();
         } else if (v == btnAddRecord) {
+
             addRecord();
         }
     }
-    private void openDateAndTimeDialog(){
+
+    private void openDateAndTimeDialog() {
         final Dialog dialog = new Dialog(this);
         dialog.setContentView(R.layout.dialog_time_and_date);
         dialog.setTitle("Choose date and time");
@@ -79,7 +87,8 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         btnFinish.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                calendar.set(datePicker.getYear(),datePicker.getMonth(), datePicker.getDayOfMonth(), timePicker.getCurrentHour(),timePicker.getCurrentMinute());
+                calendar.set(datePicker.getYear(), datePicker.getMonth(), datePicker.getDayOfMonth(),
+                        timePicker.getCurrentHour(), timePicker.getCurrentMinute());
                 chooseDate = calendar.getTime();
                 tvDate.setText(dateFormat.format(chooseDate));
                 dialog.dismiss();
@@ -87,14 +96,32 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         });
         dialog.show();
     }
-    private void addRecord(){
-        Intent intent=new Intent();
-        intent.putExtra(ARecordDAOImpl.C_DATE,getDateAndTime());
-        intent.putExtra(ARecordDAOImpl.C_REASON,txtReason.getText().toString());
-        intent.putExtra(ARecordDAOImpl.C_AMOUNT,Integer.parseInt(txtAmount.getText().toString()));
-        setResult(MainActivity.RESULT_ADD_NEW_RECORE_SUCCESS,intent);
+
+    //bth thêm addRecord
+    private void addRecord() {
+        intent = new Intent();
+        intent.putExtra(ARecordDAOImpl.C_DATE, getDateAndTime());
+        intent.putExtra(ARecordDAOImpl.C_REASON, txtReason.getText().toString());
+        intent.putExtra(ARecordDAOImpl.C_AMOUNT, Integer.parseInt(txtAmount.getText().toString()));
+        if (type == TYPE_ADD) {
+            setResult(MainActivity.RESULT_ADD_NEW_RECORE_SUCCESS, intent);
+        } else if (type == TYPE_UPDATE) {
+            intent.putExtra(ARecordDAOImpl.C_ID, id);
+            setResult(MainActivity.RESULT_UPDATE_RECORE_SUCCESS, intent);
+        }
         finish();
     }
+
+//    private void addRecord(){
+//        Intent intent=new Intent();
+//        intent.putExtra(ARecordDAOImpl.C_DATE, getDateAndTime());
+//        intent.putExtra(ARecordDAOImpl.C_REASON, txtReason.getText().toString());
+//        intent.putExtra(ARecordDAOImpl.C_AMOUNT,Integer.parseInt(txtAmount.getText().toString()));
+//        setResult(MainActivity.REQUEST_UPDATE_RCURENT_RECORE, intent);
+//        finish();
+//        }
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -102,11 +129,25 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
 
         findViews();
 
+        intent = getIntent();
+        type = intent.getIntExtra(TYPE, 0);
 
+        if (type == TYPE_UPDATE) {
+            String reason = intent.getStringExtra(ARecordDAOImpl.C_REASON);
+            String date = intent.getStringExtra(ARecordDAOImpl.C_DATE);
+            int amount = intent.getIntExtra(ARecordDAOImpl.C_AMOUNT, 0);
+            id = intent.getIntExtra(ARecordDAOImpl.C_ID, 0);
+
+            tvDate.setText(date);
+            txtAmount.setText(String.valueOf(amount));
+            txtReason.setText(reason);
+            btnAddRecord.setText("Update");
+        }
 
     }
+
     // yyyy-MM-dd HH:mm:ss
-    private String getDateAndTime(){
+    private String getDateAndTime() {
         try {
             return ARecordDAOImpl.getDateTime(dateFormat.parse(tvDate.getText().toString()));
         } catch (ParseException e) {
@@ -114,6 +155,7 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         }
         return "";
     }
+
     @Override
     protected void onResume() {
         super.onResume();

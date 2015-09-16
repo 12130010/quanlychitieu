@@ -9,6 +9,7 @@ import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -27,8 +28,13 @@ import nhuocquy.com.quanlychitieu.model.ARecord;
 
 public class MainActivity extends AppCompatActivity implements View.OnClickListener {
     public static final int REQUEST_ADD_NEW_RECORE = 1;
-    public static final  int RESULT_ADD_NEW_RECORE_SUCCESS = 2;
+    public static final int RESULT_ADD_NEW_RECORE_SUCCESS = 2;
     public static final int RESULT_ADD_NEW_RECORE_UNSUCCESS = 3;
+
+    public static final int REQUEST_UPDATE_RCURENT_RECORE = 4;
+    public static final int RESULT_UPDATE_RECORE_SUCCESS = 5;
+
+
 
     private int typeOfSum = 1;
     private ARecordDAO aRecordDAO = new ARecordDAOImpl(this);
@@ -44,10 +50,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * (http://www.buzzingandroid.com/tools/android-layout-finder)
      */
     private void findViews() {
-        button = (Button)findViewById( R.id.button );
+        button = (Button) findViewById(R.id.button);
         listRecord = (RecyclerView) findViewById(R.id.listRecord);
 
-        button.setOnClickListener( this );
+        button.setOnClickListener(this);
     }
 
     /**
@@ -58,11 +64,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     @Override
     public void onClick(View v) {
-        if ( v == button ) {
+        if (v == button) {
             Intent intent = new Intent(MainActivity.this, AddNewRecordActivity.class);
-            startActivityForResult(intent,REQUEST_ADD_NEW_RECORE);
+            intent.putExtra(AddNewRecordActivity.TYPE, AddNewRecordActivity.TYPE_ADD);
+            startActivityForResult(intent, REQUEST_ADD_NEW_RECORE);
         }
+
+//neu là sửa thì sẽ chuyển một đối tượng record qua AddNewRecordActivity
     }
+
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -73,7 +83,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         setUp();
     }
-    private void setUp(){
+
+    private void setUp() {
         adapter = new MainRCVAdapter();
         listRecord.setAdapter(adapter);
 
@@ -83,10 +94,10 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         listRecord.setItemAnimator(new DefaultItemAnimator());
 
-        listRecord.addOnItemTouchListener(new RecyclerItemClickListener(this, listRecord, new RecyclerItemClickListener.OnItemClickListener(){
+        listRecord.addOnItemTouchListener(new RecyclerItemClickListener(this, listRecord, new RecyclerItemClickListener.OnItemClickListener() {
 
             @Override
-            public void onItemClick(View view, final int position) {
+            public void onItemClick(final View view, final int position) {
 //                Toast.makeText( MainActivity.this,position +"", Toast.LENGTH_LONG).show();
                 final CharSequence[] items = {"Thêm", "Sửa", "Xóa"};
 
@@ -95,12 +106,26 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 builder.setItems(items, new DialogInterface.OnClickListener() {
                     public void onClick(DialogInterface dialog, final int item) {
 //                        Toast.makeText(getApplicationContext(), items[item], Toast.LENGTH_SHORT).show();
-                        switch (item){
+                        switch (item) {
+                            case 0:
+
+                            case 1://bth thêm case 1:
+                                //hiển thị activity AddNewRecordActivity với dữ liệu từ listrecord
+                                // xử lý
+                                ARecord aRecord2 = adapter.getListRecord().get(position);
+                                Intent intent = new Intent(MainActivity.this, AddNewRecordActivity.class);
+                                intent.putExtra(ARecordDAOImpl.C_AMOUNT, aRecord2.getAmount());
+                                intent.putExtra(ARecordDAOImpl.C_ID, aRecord2.getId());
+                                intent.putExtra(ARecordDAOImpl.C_REASON, aRecord2.getReason());
+                                intent.putExtra(ARecordDAOImpl.C_DATE, ARecordDAOImpl.getDateTime(aRecord2.getDate()));
+                                intent.putExtra(AddNewRecordActivity.TYPE, AddNewRecordActivity.TYPE_UPDATE);
+                                startActivityForResult(intent, REQUEST_ADD_NEW_RECORE);
+                                break;
                             case 2:
                                 DialogInterface.OnClickListener dialogClickListener = new DialogInterface.OnClickListener() {
                                     @Override
                                     public void onClick(DialogInterface dialog, int which) {
-                                        switch (which){
+                                        switch (which) {
                                             case DialogInterface.BUTTON_POSITIVE:
                                                 //asynctask delete
                                                 new AsyncTask<Integer, Void, Boolean>() {
@@ -118,11 +143,11 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                                     @Override
                                                     protected void onPostExecute(Boolean aBoolean) {
                                                         super.onPostExecute(aBoolean);
-                                                        if(aBoolean){
-                                                            Toast.makeText( MainActivity.this,"Xóa thành công", Toast.LENGTH_LONG).show();
+                                                        if (aBoolean) {
+                                                            Toast.makeText(MainActivity.this, "Xóa thành công", Toast.LENGTH_LONG).show();
                                                             updateData();
-                                                        }else{
-                                                            Toast.makeText( MainActivity.this,"Xóa không thành công", Toast.LENGTH_LONG).show();
+                                                        } else {
+                                                            Toast.makeText(MainActivity.this, "Xóa không thành công", Toast.LENGTH_LONG).show();
                                                         }
                                                     }
                                                 }.execute(position);
@@ -138,11 +163,13 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 AlertDialog.Builder builder = new AlertDialog.Builder(MainActivity.this);
                                 builder.setMessage("Are you sure delete '" + aRecord.getReason() + "' with '" + aRecord.getAmount() + "'?").setPositiveButton("Yes", dialogClickListener)
                                         .setNegativeButton("No", dialogClickListener).show();
+                                break;
                         }
                     }
                 });
                 AlertDialog alert = builder.create();
                 alert.show();
+
             }
 
             @Override
@@ -153,7 +180,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
         updateData();
     }
-    private void updateData(){
+
+    private void updateData() {
         // asynctask load
         new AsyncTask<Void, Void, List<ARecord>>() {
             @Override
@@ -177,31 +205,62 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, Intent data) {
-        switch (requestCode){
+        switch (requestCode) {
             case REQUEST_ADD_NEW_RECORE:
-                if(resultCode == RESULT_ADD_NEW_RECORE_SUCCESS) {
-                    final String reason = data.getStringExtra(ARecordDAOImpl.C_REASON);
-                    final int amount = data.getIntExtra(ARecordDAOImpl.C_AMOUNT, 0);
-                    final String date = data.getStringExtra(ARecordDAOImpl.C_DATE);
-                    // asynctask save
-                    new AsyncTask<Void, Void, Integer>() {
-                        @Override
-                        protected Integer doInBackground(Void... params) {
-                            try {
-                                aRecordDAO.save(new ARecord(reason, amount, ARecordDAOImpl.getDateTime2(date)));
-                            } catch (DAOException e) {
-                                e.printStackTrace();
+                switch (resultCode) {
+                    case RESULT_ADD_NEW_RECORE_SUCCESS:
+                        Log.e("th....", "Da zo");
+                        final String reason = data.getStringExtra(ARecordDAOImpl.C_REASON);
+                        final int amount = data.getIntExtra(ARecordDAOImpl.C_AMOUNT, 0);
+                        final String date = data.getStringExtra(ARecordDAOImpl.C_DATE);
+                        // asynctask save
+                        new AsyncTask<Void, Void, Integer>() {
+                            @Override
+                            protected Integer doInBackground(Void... params) {
+                                try {
+                                    aRecordDAO.save(new ARecord(reason, amount, ARecordDAOImpl.getDateTime2(date)));
+                                    Log.e("th......2", "da luu");
+                                } catch (DAOException e) {
+                                    e.printStackTrace();
+                                }
+                                return 1;
                             }
-                            return 1;
-                        }
 
-                        @Override
-                        protected void onPostExecute(Integer integer) {
-                            super.onPostExecute(integer);
-                            updateData();
-                        }
-                    }.execute();
+                            @Override
+                            protected void onPostExecute(Integer integer) {
+                                super.onPostExecute(integer);
+                                updateData();
+                            }
+                        }.execute();
+                        break;
+//bth thêm case REQUEST_UPDATE_RCURENT_RECORE:
+                    case RESULT_UPDATE_RECORE_SUCCESS:
+                        final String reason2 = data.getStringExtra(ARecordDAOImpl.C_REASON);
+                        final int amount2 = data.getIntExtra(ARecordDAOImpl.C_AMOUNT, 0);
+                        final String date2 = data.getStringExtra(ARecordDAOImpl.C_DATE);
+                        final int id = data.getIntExtra(ARecordDAOImpl.C_ID, 0);
+                        // asynctask save
+                        new AsyncTask<Void, Void, Integer>() {
+                            @Override
+                            protected Integer doInBackground(Void... params) {
+                                try {
+                                    long res = aRecordDAO.update(new ARecord(id, reason2, amount2, ARecordDAOImpl.getDateTime2(date2)));
+                                } catch (DAOException e) {
+                                    e.printStackTrace();
+                                }
+                                return 1;
+                            }
+
+                            @Override
+                            protected void onPostExecute(Integer integer) {
+                                super.onPostExecute(integer);
+                                updateData();
+                                Toast.makeText(MainActivity.this, "Update thành công",Toast.LENGTH_LONG).show();
+                            }
+                        }.execute();
                 }
+
+
         }
     }
 
