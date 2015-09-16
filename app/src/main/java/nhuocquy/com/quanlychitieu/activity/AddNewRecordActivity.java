@@ -16,12 +16,14 @@ import android.widget.TextView;
 import android.widget.TimePicker;
 import android.widget.Toast;
 
+import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.GregorianCalendar;
 
 import nhuocquy.com.quanlychitieu.R;
+import nhuocquy.com.quanlychitieu.dao.ARecordDAOImpl;
 
 public class AddNewRecordActivity extends AppCompatActivity implements View.OnClickListener {
     private SimpleDateFormat dateFormat = new SimpleDateFormat("dd/MM/yyyy HH:mm");
@@ -63,7 +65,7 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         if (v == bntDate) {
             openDateAndTimeDialog();
         } else if (v == btnAddRecord) {
-            // Handle clicks for btnAddRecord
+            addRecord();
         }
     }
     private void openDateAndTimeDialog(){
@@ -85,6 +87,14 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         });
         dialog.show();
     }
+    private void addRecord(){
+        Intent intent=new Intent();
+        intent.putExtra(ARecordDAOImpl.C_DATE,getDateAndTime());
+        intent.putExtra(ARecordDAOImpl.C_REASON,txtReason.getText().toString());
+        intent.putExtra(ARecordDAOImpl.C_AMOUNT,Integer.parseInt(txtAmount.getText().toString()));
+        setResult(MainActivity.RESULT_ADD_NEW_RECORE_SUCCESS,intent);
+        finish();
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -95,7 +105,15 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
 
 
     }
-
+    // yyyy-MM-dd HH:mm:ss
+    private String getDateAndTime(){
+        try {
+            return ARecordDAOImpl.getDateTime(dateFormat.parse(tvDate.getText().toString()));
+        } catch (ParseException e) {
+            e.printStackTrace();
+        }
+        return "";
+    }
     @Override
     protected void onResume() {
         super.onResume();
