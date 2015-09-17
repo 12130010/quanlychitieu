@@ -10,6 +10,7 @@ import android.database.sqlite.SQLiteOpenHelper;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
+import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
 
@@ -26,8 +27,10 @@ public class ARecordDAOImpl extends SQLiteOpenHelper implements ARecordDAO {
     public static final String C_DATE = "dates";
     public static final String C_AMOUNT = "amount";
 
-   static SimpleDateFormat dateFormat = new SimpleDateFormat(
+    static SimpleDateFormat dateFormat = new SimpleDateFormat(
             "yyyy-MM-dd HH:mm:ss");
+    static SimpleDateFormat dateFormat2 = new SimpleDateFormat(
+            "dd/MM/yyyy   HH:mm");
 
     public ARecordDAOImpl(Context context) {
         super(context, "dbname", null, 1);
@@ -90,17 +93,84 @@ public class ARecordDAOImpl extends SQLiteOpenHelper implements ARecordDAO {
     }
 
     @Override
-    public List<ARecord> loadByDay(Date date) throws DAOException {
+    public List<ARecord> loadByDay(Date date, boolean isASC) throws DAOException {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        date = c.getTime();
+
+        c.set(Calendar.HOUR_OF_DAY, 23);
+        c.set(Calendar.MINUTE, 59);
+        c.set(Calendar.SECOND, 59);
+        return loadBy2Day(date, c.getTime(),isASC);
+    }
+
+    @Override
+    public List<ARecord> loadByWeek(Date date, boolean isASC) throws DAOException {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        c.set(Calendar.DAY_OF_WEEK, Calendar.MONDAY);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        date = c.getTime();
+
+        c.add(Calendar.DATE, 6);
+        c.set(Calendar.HOUR_OF_DAY, 23);
+        c.set(Calendar.MINUTE, 59);
+        c.set(Calendar.SECOND, 59);
+        return loadBy2Day(date, c.getTime(),isASC);
+    }
+
+    @Override
+    public List<ARecord> loadByMonth(Date date, boolean isASC) throws DAOException {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        c.set(Calendar.DAY_OF_MONTH, 1);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        date = c.getTime();
+
+        c.add(Calendar.MONTH, 1);
+        c.add(Calendar.DATE, -1);
+        c.set(Calendar.HOUR_OF_DAY, 23);
+        c.set(Calendar.MINUTE, 59);
+        c.set(Calendar.SECOND, 59);
+        return loadBy2Day(date, c.getTime(), isASC);
+    }
+
+    @Override
+    public List<ARecord> loadByYear(Date date, boolean isASC) throws DAOException {
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        c.set(Calendar.DAY_OF_MONTH, 1);
+        c.set(Calendar.MONTH, 0);
+        c.set(Calendar.HOUR_OF_DAY, 0);
+        c.set(Calendar.MINUTE, 0);
+        c.set(Calendar.SECOND, 0);
+        date = c.getTime();
+
+        c.add(Calendar.YEAR, 1);
+        c.add(Calendar.DATE, -1);
+        c.set(Calendar.HOUR_OF_DAY, 23);
+        c.set(Calendar.MINUTE, 59);
+        c.set(Calendar.SECOND, 59);
+        return loadBy2Day(date, c.getTime(),isASC);
+    }
+
+    @Override
+    public List<ARecord> loadBy2Day(Date from, Date to, boolean isASC) throws DAOException {
         List<ARecord> list = new ArrayList<>();
         SQLiteDatabase db = null;
         try {
             db = this.getReadableDatabase();
-//            Cursor res =  db.rawQuery( "select * from " + TABLE_NAME, null );
-          Cursor res =  db.rawQuery( "select * from " + TABLE_NAME + " where " + C_DATE + " between  '2010-01-01 00:00:00' and '2019-01-01 00:00:00' ", null );
+            Cursor res = db.rawQuery("select * from " + TABLE_NAME + " where " + C_DATE + " between  ? and ? order by " + C_DATE + (isASC ? " ASC" : " DESC"), new String[]{ARecordDAOImpl.getDateTime(from), ARecordDAOImpl.getDateTime(to)});
             res.moveToFirst();
-
-            while(res.isAfterLast() == false){
-                list.add(new ARecord(res.getInt(res.getColumnIndex(C_ID)),  res.getString(res.getColumnIndex(C_REASON)),res.getInt(res.getColumnIndex(C_AMOUNT)), getDateTime2(res.getString(res.getColumnIndex(C_DATE)))));
+            while (res.isAfterLast() == false) {
+                list.add(new ARecord(res.getInt(res.getColumnIndex(C_ID)), res.getString(res.getColumnIndex(C_REASON)), res.getInt(res.getColumnIndex(C_AMOUNT)), getDateTime2(res.getString(res.getColumnIndex(C_DATE)))));
                 res.moveToNext();
             }
         } catch (SQLiteException e) {
@@ -110,26 +180,6 @@ public class ARecordDAOImpl extends SQLiteOpenHelper implements ARecordDAO {
                 db.close();
         }
         return list;
-    }
-
-    @Override
-    public List<ARecord> loadByWeek(Date date) throws DAOException {
-        return null;
-    }
-
-    @Override
-    public List<ARecord> loadByMonth(Date date) throws DAOException {
-        return null;
-    }
-
-    @Override
-    public List<ARecord> loadByYear(Date date) throws DAOException {
-        return null;
-    }
-
-    @Override
-    public List<ARecord> loadBy2Day(Date from, Date to) throws DAOException {
-        return null;
     }
 
     @Override
@@ -149,12 +199,42 @@ public class ARecordDAOImpl extends SQLiteOpenHelper implements ARecordDAO {
     public static String getDateTime(Date date) {
         return dateFormat.format(date);
     }
-    public static Date getDateTime2(String date){
+
+    /**
+     * Bỏ seccond
+     * @param date
+     * @return
+     */
+    public static String getDateTime3(Date date) {
+        String s =dateFormat2.format(date);
+        return s;
+//        String[] arrs = s.split(" ");
+//        return arrs[0] + "\n" + arrs[1];
+    }
+
+    public static Date getDateTime2(String date) {
         try {
             return dateFormat.parse(date);
         } catch (ParseException e) {
             e.printStackTrace();
             return null;
         }
+    }
+    public static String convert(long n){
+        StringBuilder sb = new StringBuilder();
+        long du = 0;
+        int dot = 0;
+        while(n > 0){
+            if(dot == 3){
+                dot = 0;
+                sb.insert(0, '.');
+            }
+            du = n%10;
+            n = n / 10;
+            sb.insert(0,du);
+            dot++;
+        }
+
+        return sb.toString();
     }
 }

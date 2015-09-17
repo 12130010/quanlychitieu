@@ -34,7 +34,7 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
     private ImageButton bntDate;
     private EditText txtReason;
     private EditText txtAmount;
-    private Button btnAddRecord;
+    private Button btnAddRecord, btnHuy;
     Intent intent;
     public static final String TYPE = "type";
     public static final int TYPE_ADD = 1;
@@ -55,9 +55,12 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         txtReason = (EditText) findViewById(R.id.txtReason);
         txtAmount = (EditText) findViewById(R.id.txtAmount);
         btnAddRecord = (Button) findViewById(R.id.btnAddRecord);
+        btnHuy = (Button) findViewById(R.id.btnHuy);
 
         bntDate.setOnClickListener(this);
         btnAddRecord.setOnClickListener(this);
+        btnHuy.setOnClickListener(this);
+
     }
 
     /**
@@ -73,6 +76,8 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
         } else if (v == btnAddRecord) {
 
             addRecord();
+        }else if(v == btnHuy){
+            finish();
         }
     }
 
@@ -159,7 +164,6 @@ public class AddNewRecordActivity extends AppCompatActivity implements View.OnCl
     @Override
     protected void onResume() {
         super.onResume();
-        tvDate.setText(dateFormat.format(chooseDate));
     }
 
     @Override

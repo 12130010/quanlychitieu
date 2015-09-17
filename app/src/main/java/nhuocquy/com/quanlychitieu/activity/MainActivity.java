@@ -1,6 +1,7 @@
 package nhuocquy.com.quanlychitieu.activity;
 
 import android.app.AlertDialog;
+import android.app.Dialog;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.os.AsyncTask;
@@ -13,9 +14,19 @@ import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
+import android.widget.DatePicker;
+import android.widget.ImageButton;
+import android.widget.Spinner;
+import android.widget.TextView;
+import android.widget.TimePicker;
 import android.widget.Toast;
 
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.List;
 
 import nhuocquy.com.quanlychitieu.R;
@@ -34,14 +45,24 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     public static final int REQUEST_UPDATE_RCURENT_RECORE = 4;
     public static final int RESULT_UPDATE_RECORE_SUCCESS = 5;
 
+    public static final int SUMARY_BY_DAY = 0;
+    public static final int SUMARY_BY_WEEK = 1;
+    public static final int SUMARY_BY_MONTH = 2;
+    public static final int SUMARY_BY_YEAR = 3;
+    public static final int SUMARY_BY_2_DAY = 4;
+    private int typeOfSumary = SUMARY_BY_MONTH;
+    private String[] typeArray = {"Theo ngày","Theo tuần", "Theo tháng", "Theo năm", "Giữa 2 ngày"};
+    private boolean isASC = false; // sap xep theo tang dan
+    private Date chooseDate = new Date();
+    private Calendar calendar = new GregorianCalendar();
 
-
-    private int typeOfSum = 1;
     private ARecordDAO aRecordDAO = new ARecordDAOImpl(this);
     private MainRCVAdapter adapter;
 
-    private Button button;
+    private Spinner spTypeOfSum, spOrder;
     private RecyclerView listRecord;
+    private ImageButton bntDate;
+    private TextView tvDate, tvSum;
 
     /**
      * Find the Views in the layout<br />
@@ -50,10 +71,15 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      * (http://www.buzzingandroid.com/tools/android-layout-finder)
      */
     private void findViews() {
-        button = (Button) findViewById(R.id.button);
         listRecord = (RecyclerView) findViewById(R.id.listRecord);
 
-        button.setOnClickListener(this);
+        bntDate = (ImageButton) findViewById(R.id.bntDate);
+        bntDate.setOnClickListener(this);
+
+        spTypeOfSum = (Spinner) findViewById(R.id.typeOfSumary);
+        spOrder = (Spinner) findViewById(R.id.spOrder);
+        tvDate = (TextView) findViewById(R.id.tvDate);
+        tvSum = (TextView) findViewById(R.id.tvSum);
     }
 
     /**
@@ -64,16 +90,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
      */
     @Override
     public void onClick(View v) {
-        if (v == button) {
-            Intent intent = new Intent(MainActivity.this, AddNewRecordActivity.class);
-            intent.putExtra(AddNewRecordActivity.TYPE, AddNewRecordActivity.TYPE_ADD);
-            startActivityForResult(intent, REQUEST_ADD_NEW_RECORE);
+        if (v == bntDate) {
+            openDateAndTimeDialog();
         }
-
-//neu là sửa thì sẽ chuyển một đối tượng record qua AddNewRecordActivity
     }
+    private void openDateAndTimeDialog() {
+        final Dialog dialog = new Dialog(this);
+        dialog.setContentView(R.layout.dialog_time_and_date);
+        dialog.setTitle("Choose date and time");
 
-
+        final DatePicker datePicker = (DatePicker) dialog.findViewById(R.id.datePicker);
+        final TimePicker timePicker = (TimePicker) dialog.findViewById(R.id.timePicker);
+        Button btnFinish = (Button) dialog.findViewById(R.id.btnFinish);
+        btnFinish.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                calendar.set(datePicker.getYear(), datePicker.getMonth(), datePicker.getDayOfMonth(),
+                        timePicker.getCurrentHour(), timePicker.getCurrentMinute());
+                chooseDate = calendar.getTime();
+                tvDate.setText(ARecordDAOImpl.getDateTime3(chooseDate));
+                dialog.dismiss();
+                updateData();
+            }
+        });
+        dialog.show();
+    }
+    private void addNewRecord(){
+        Intent intent = new Intent(MainActivity.this, AddNewRecordActivity.class);
+        intent.putExtra(AddNewRecordActivity.TYPE, AddNewRecordActivity.TYPE_ADD);
+        startActivityForResult(intent, REQUEST_ADD_NEW_RECORE);
+    }
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -85,6 +131,36 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
     }
 
     private void setUp() {
+        spTypeOfSum.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                typeOfSumary = position;
+                updateData();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+        ArrayAdapter<String> spAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item,typeArray);
+        spTypeOfSum.setAdapter(spAdapter);
+        //
+        spAdapter = new ArrayAdapter<String>(this, android.R.layout.simple_spinner_item,new String[]{"Tăng dần", "Giảm dần"});
+        spOrder.setAdapter(spAdapter);
+        spOrder.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                isASC = position ==0;
+                updateData();
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+
+            }
+        });
+        //
         adapter = new MainRCVAdapter();
         listRecord.setAdapter(adapter);
 
@@ -108,7 +184,8 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 //                        Toast.makeText(getApplicationContext(), items[item], Toast.LENGTH_SHORT).show();
                         switch (item) {
                             case 0:
-
+                                addNewRecord();
+                                    break;
                             case 1://bth thêm case 1:
                                 //hiển thị activity AddNewRecordActivity với dữ liệu từ listrecord
                                 // xử lý
@@ -117,7 +194,7 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                                 intent.putExtra(ARecordDAOImpl.C_AMOUNT, aRecord2.getAmount());
                                 intent.putExtra(ARecordDAOImpl.C_ID, aRecord2.getId());
                                 intent.putExtra(ARecordDAOImpl.C_REASON, aRecord2.getReason());
-                                intent.putExtra(ARecordDAOImpl.C_DATE, ARecordDAOImpl.getDateTime(aRecord2.getDate()));
+                                intent.putExtra(ARecordDAOImpl.C_DATE, ARecordDAOImpl.getDateTime3(aRecord2.getDate()));
                                 intent.putExtra(AddNewRecordActivity.TYPE, AddNewRecordActivity.TYPE_UPDATE);
                                 startActivityForResult(intent, REQUEST_ADD_NEW_RECORE);
                                 break;
@@ -187,7 +264,21 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             @Override
             protected List<ARecord> doInBackground(Void... params) {
                 try {
-                    return aRecordDAO.loadByDay(null);
+                    switch (typeOfSumary){
+                        case SUMARY_BY_DAY:
+                            return aRecordDAO.loadByDay(chooseDate,isASC);
+                        case SUMARY_BY_WEEK:
+                            return aRecordDAO.loadByWeek(chooseDate, isASC);
+                        case SUMARY_BY_MONTH:
+                            return aRecordDAO.loadByMonth(chooseDate, isASC);
+                        case SUMARY_BY_YEAR:
+                            return aRecordDAO.loadByYear(chooseDate, isASC);
+                        case SUMARY_BY_2_DAY:
+                            // TODO
+                            return aRecordDAO.loadBy2Day(new Date(), new Date(), isASC);
+                        default:
+                            return null;
+                    }
                 } catch (DAOException e) {
                     e.printStackTrace();
                     return null;
@@ -199,8 +290,18 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                 super.onPostExecute(aRecords);
                 adapter.setListRecord(aRecords);
                 adapter.notifyDataSetChanged();
+                tvSum.setText(ARecordDAOImpl.convert(sum(aRecords)));
             }
         }.execute();
+
+        spTypeOfSum.setSelection(typeOfSumary);
+        tvDate.setText(ARecordDAOImpl.getDateTime3(chooseDate));
+    }
+    private long sum(List<ARecord> list ){
+        long sum = 0;
+        for (ARecord r : list)
+            sum+= r.getAmount();
+        return sum;
     }
 
     @Override
@@ -209,7 +310,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
             case REQUEST_ADD_NEW_RECORE:
                 switch (resultCode) {
                     case RESULT_ADD_NEW_RECORE_SUCCESS:
-                        Log.e("th....", "Da zo");
                         final String reason = data.getStringExtra(ARecordDAOImpl.C_REASON);
                         final int amount = data.getIntExtra(ARecordDAOImpl.C_AMOUNT, 0);
                         final String date = data.getStringExtra(ARecordDAOImpl.C_DATE);
@@ -219,7 +319,6 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
                             protected Integer doInBackground(Void... params) {
                                 try {
                                     aRecordDAO.save(new ARecord(reason, amount, ARecordDAOImpl.getDateTime2(date)));
-                                    Log.e("th......2", "da luu");
                                 } catch (DAOException e) {
                                     e.printStackTrace();
                                 }
@@ -273,13 +372,12 @@ public class MainActivity extends AppCompatActivity implements View.OnClickListe
 
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
-        // Handle action bar item clicks here. The action bar will
-        // automatically handle clicks on the Home/Up button, so long
-        // as you specify a parent activity in AndroidManifest.xml.
+
         int id = item.getItemId();
 
         //noinspection SimplifiableIfStatement
         if (id == R.id.mnBtnAdd) {
+            addNewRecord();
             return true;
         }
 

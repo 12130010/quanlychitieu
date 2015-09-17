@@ -27,8 +27,8 @@ public class MainRCVAdapter extends RecyclerView.Adapter<MainRCVAdapter.ARecordV
     @Override
     public void onBindViewHolder(ARecordViewHolder viewHolder, int i) {
         ARecord aRecord = listRecord.get(i);
-        viewHolder.tvDate.setText(ARecordDAOImpl.getDateTime(aRecord.getDate()));
-        viewHolder.tvAmount.setText(String.valueOf(aRecord.getAmount()));
+        viewHolder.tvDate.setText(ARecordDAOImpl.getDateTime3(aRecord.getDate()));
+        viewHolder.tvAmount.setText(ARecordDAOImpl.convert(aRecord.getAmount()));
         viewHolder.tvReason.setText(aRecord.getReason());
     }
 
